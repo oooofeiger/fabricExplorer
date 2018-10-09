@@ -1,0 +1,58 @@
+@import '~antd/lib/style/themes/default.less';
+
+.modal{
+    .form{
+        :global{
+            .ant-card-body{
+                padding: 15px;
+            }
+            .ant-form-item{
+                margin-bottom: 15px;
+            }
+        }
+        .card{
+            margin-top: 10px;
+            :global{
+                .ant-card-head-title{
+                    padding:0;
+                    line-height: 56px;
+                }
+            }
+            .cardTitle{
+                line-height: 39px;
+                display: inline-block;
+                :global{
+                    .ant-form-item{
+                        margin-bottom: 0;
+                        margin-left: 20px;
+                        width:60%
+                    }
+                }
+            }
+            .orgList{
+                width:35%;
+                display:inline-block;
+            }
+            .signed{
+                margin-left:20px;
+                display:inline-block;
+                :global{
+                    .ant-form-item-control-wrapper{
+                        display: inline-block;
+                    }
+                }
+            }
+        }
+        
+        .channelName{
+            display:inline-block;
+            width:30%;
+        }
+        .policyNum{
+            display:inline-block;
+            width:60%;
+            margin-left:30px;  
+        }
+        
+    }
+}
