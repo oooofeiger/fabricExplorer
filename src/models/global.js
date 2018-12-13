@@ -1,4 +1,4 @@
-import {  getChannelList, getPeerList, getSessionId } from '../services/api';
+import { getChannelList, getPeerList, getSessionId } from '../services/api';
 
 export default {
   namespace: 'global',
@@ -20,39 +20,39 @@ export default {
         payload: count,
       });
     },
-    *getChannelAndPeerList({ payload }, {call, put }){
-      const channelList = yield call(getChannelList,payload);
-      const peerList = yield call(getPeerList,payload);
+    *getChannelAndPeerList({ payload }, { call, put }) {
+      const channelList = yield call(getChannelList, payload);
+      const peerList = yield call(getPeerList, payload);
       yield put({
         type: 'saveChannelAndPeerList',
         payload: {
           channelList: channelList,
-          peerList: peerList
-        }
-      })
+          peerList: peerList,
+        },
+      });
     },
-    *getSessionId(_,{ call , put }){
+    *getSessionId(_, { call, put }) {
       const response = yield call(getSessionId);
-      console.log('11111111111',response)
+      console.log('11111111111', response);
       yield put({
         type: 'saveSessionId',
-        payload: response
-      })
-    }
+        payload: response,
+      });
+    },
   },
 
   reducers: {
-    saveSessionId(state, { payload }){
+    saveSessionId(state, { payload }) {
       return {
         ...state,
         sessionId: payload,
-      }
+      };
     },
-    saveChannelAndPeerList(state, { payload }){
+    saveChannelAndPeerList(state, { payload }) {
       return {
         ...state,
         list: payload,
-      }
+      };
     },
     changeLayoutCollapsed(state, { payload }) {
       return {

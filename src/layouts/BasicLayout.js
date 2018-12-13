@@ -15,7 +15,7 @@ import NotFound from '../routes/Exception/404';
 import { getRoutes } from '../utils/utils';
 import Authorized from '../utils/Authorized';
 import { getMenuData } from '../common/menu';
-import {heartTickBlock, heartTickMessage} from '../common/heartTick';
+import {heartTickBlock, heartTickMessage, heartTickStatus} from '../common/heartTick';
 import logo from '../assets/favicon.ico';
 
 const { Content, Header, Footer } = Layout;
@@ -106,12 +106,13 @@ let timerBlock = null; //区块分钟级监控
 let dataSource = [];   //一个时间节点内接收到的数据
 let dataSourceMin = [];
 let dataSourceBlock = [];
+let allBlocksData = []; //区块列表的数据
 
 let isMobile;
 enquireScreen(b => {
   isMobile = b;
 });
-const host = '192.168.32.116:8080';
+const host = window.hostIp;
 @connect(({ user, chart, global = {}, loading }) => ({
   currentUser: user.currentUser,
   collapsed: global.collapsed,
@@ -133,9 +134,16 @@ export default class BasicLayout extends React.PureComponent {
       isMobile,
       messageSwitch: true,
       blockSwitch: true,
+      statusSwitch: true,
+      testSwitch: true,
     }
-    this.message = null;
+    this.wsMessage = null;
     this.wsBlock = null;
+    this.wsStatus = null;
+    this.getCurrentChannel = this.getCurrentChannel.bind(this);
+    this.getWsStatusData = this.getWsStatusData.bind(this);
+    this.updateList = this.updateList.bind(this);
+
   }
 
   getChildContext() {
@@ -146,6 +154,12 @@ export default class BasicLayout extends React.PureComponent {
     };
   }
 
+  updateList(){
+    const { dispatch } = this.props;
+    dispatch({
+      type: 'global/getChannelAndPeerList',
+    });
+  }
   componentDidMount() {
     this.enquireHandler = enquireScreen(mobile => {
       this.setState({
@@ -166,92 +180,203 @@ export default class BasicLayout extends React.PureComponent {
 
   componentDidUpdate(){ 
     if(!this.props.sessionId) return;
+    const {messageSwitch, currentChannel, blockSwitch, statusSwitch, currentPeer, sectionName, testSwitch} = this.state;
     const { dispatch } = this.props;
     const { token } = this.props.sessionId;
     const that = this;
 
+    if(statusSwitch && token && sectionName && currentChannel && currentPeer){
+      // if(this.wsStatus){
+      //   this.wsStatus.close();
+      // }
+      this.socketStatus(token, sectionName, currentChannel, currentPeer);
+    }
 
+    // if(this.wsBlock && testSwitch){
+    //   setTimeout(()=>{
+    //     console.log('准备断连')
+    //     this.wsBlock.close()
+    //   },5000);
+    //   this.setState({
+    //     testSwitch: false
+    //   })
+    // }
     
+    if(messageSwitch && token){
+      // if(this.wsMessage){
+      //   this.wsMessage.close();
+      // }
+      this.socketMessage(token);
+    }
 
-    if(this.state.messageSwitch && token){
-      if(typeof(WebSocket) === "undefined") {
-        alert("您的浏览器不支持WebSocket");
-      }
-      if(this.message && this.message.readyState !== 3){
-        return;
-      } 
-      this.message = new WebSocket(`ws://${host}/websocket/message/${token}`);
-      this.message.onopen = function(){
-        console.log('websocket已经连接');
-        console.log('this.message',that.message)
-        heartTickMessage.start(this,token);
-      }
+    if(currentChannel && blockSwitch && token){
+      console.log('重连',this.state);
+      // if(this.wsBlock){
+      //   this.wsBlock.close();
+      // }
+      this.socketBlocks(token,currentChannel);
       
-      this.message.onmessage = function(msg){
-        heartTickMessage.reset(this,token);
-        console.log('websocket',JSON.parse(msg.data));
-        const data = JSON.parse(msg.data);
-        if(data.token) return;
-        message.info(data.message)
-      }
+    }
+  }
+
+  //获取状态
+  socketStatus = (token, sectionName, channelName, peerName) => {
+    const that = this;
+    if(typeof(WebSocket) === "undefined") {
+      alert("您的浏览器不支持WebSocket");
+    }
+    const { statusSwitch } = this.state;
+    // if(!statusSwitch){
+    //   return;
+    // } 
+    this.setState({
+      statusSwitch: false
+    })
+    this.wsStatus = new WebSocket(`ws://${host}/websocket/status/${token}/${sectionName}/${channelName}/${peerName}`);
+    this.wsStatus.onopen = function(){
+      console.log('wsStatus已经连接');
+      console.log('this.wsStatus',that.wsStatus)
+      heartTickStatus.start(this,token);
+    }
     
-      this.message.onclose = function(msg){
-        console.log('关闭了websocket');
-        that.reconnect(token);
-      }
-
-      this.message.onerror = function(){
-        console.log('websocket发生错误');
-        that.reconnect(token);
-      }
-
-      this.setState({
-          messageSwitch: false
+    this.wsStatus.onmessage = function(msg){
+      heartTickStatus.reset(this,token);
+      // console.log(`${channelName}下的websoket开始onmessage`)
+      // console.log('websocket',JSON.parse(msg.data));
+      const data = JSON.parse(msg.data);
+      if(data.token) return;
+      that.setState({
+        statusData: data,
       })
     }
-
-    let initBlock = true;
-    if(this.state.currentChannel && this.state.blockSwitch && token){
-      console.log(this.state);    
-      
-      this.socketBlocks(token,this.state.currentChannel,initBlock, dataSource );
+  
+    this.wsStatus.onclose = function(msg){
+      console.log('关闭了wsStatus');
+      that.reconnectStatus(token, sectionName, channelName, peerName);
     }
+
+    this.wsStatus.onerror = function(){
+      console.log('wsStatus发生错误');
+      that.reconnectStatus(token, sectionName, channelName, peerName);
+    }
+
+    this.reconnectStatus.t = null;
   }
 
-  reconnect = (token) => {
-    console.log('重连websocket')
-    this.wsStatus = new WebSocket(`ws://${host}/websocket/message/${token}`);
+  reconnectStatus = (token, sectionName, channelName, peerName) => {
+    console.log('重连wsStatus')
+    // this.setState({
+    //   statusSwitch:true
+    // })
+    clearTimeout(this.reconnectStatus.t);
+    this.reconnectMessage.t = setTimeout(()=>{
+      this.wsStatus = null;
+      this.socketStatus(token, sectionName, channelName, peerName)
+    },3000)
+    // this.wsStatus = new WebSocket(`ws://${host}/websocket/status/${token}/${sectionName}/${channelName}/${peerName}`);
   }
 
+  //获取消息
+  socketMessage = (token) => {
+    if(typeof(WebSocket) === "undefined") {
+      alert("您的浏览器不支持WebSocket");
+    }
+    const { messageSwitch } = this.state;
+    // if(!messageSwitch){
+    //   return;
+    // } 
+    this.setState({
+      messageSwitch: false
+    })
+    const that = this;
+    this.wsMessage = new WebSocket(`ws://${host}/websocket/message/${token}`);
+    this.wsMessage.onopen = function(){
+      console.log('websocket已经连接');
+      console.log('this.message',that.wsMessage)
+      heartTickMessage.start(this,token);
+    }
+    
+    this.wsMessage.onmessage = function(msg){
+      heartTickMessage.reset(this,token);
+      // console.log('websocket',JSON.parse(msg.data));
+      const data = JSON.parse(msg.data);
+      if(data.token) return;
+      data.message && data.message !== 'null' && message.info(data.message);
+      data.updateChaincodeList && that.setState({
+        updateChaincodeList: data.updateChaincodeList
+      })
+    }
+  
+    this.wsMessage.onclose = function(msg){
+      console.log('关闭了websocket');
+      that.reconnectMessage(token);
+    }
+
+    this.wsMessage.onerror = function(){
+      console.log('websocket发生错误');
+      that.reconnectMessage(token);
+    }
+    this.reconnectMessage.t = null;
+    
+  }
+
+  reconnectMessage = (token) => {
+    console.log('重连wsMessage')
+    // this.setState({
+    //   messageSwitch: true
+    // })
+    clearTimeout(this.reconnectMessage.t);
+    this.reconnectMessage.t = setTimeout(()=>{
+      this.wsMessage = null;
+      this.socketMessage(token);
+    },3000)
+    
+    // this.wsMessage = new WebSocket(`ws://${host}/websocket/message/${token}`);
+  }
+
+
+  //获取区块数据
   socketBlocks = (token,channelName) => {
     const { dispatch } = this.props;
+    const { blockSwitch } = this.state;
     const that = this;
-    if(this.wsBlock && this.wsBlock.readyState !== 3){
-      // this.wsBlock.close();
-      return;
-    } 
-    this.wsBlock = new WebSocket(`ws://192.168.32.116:8080/websocket/block/${token}/${channelName}`);
+    console.log('blockSwitch',blockSwitch)
+    // if(!blockSwitch){
+    //   // this.wsBlock.close();
+    //   return;
+    // } 
+    this.setState({
+      blockSwitch: false
+    })
+    this.wsBlock = new WebSocket(`ws://${window.hostIp}/websocket/block/${token}/${channelName}`);
     this.wsBlock.onopen = function(){
       console.log('this.wsBlock',this)
       console.log('socketBlock已经连接');
       heartTickBlock.start(this,token);
     } 
-    
+    let messageTimer = null;
     this.wsBlock.onmessage = function(msg){
-      console.log('socketblock正在接受消息')
+      console.log(`${channelName}正在接受消息`)
       heartTickBlock.reset(this,token);
       let data = JSON.parse(msg.data);
-      console.log(data)
       if(!data.token){
-          dataSource.push(data);
-          dataSourceMin.push(data);
-          dataSourceBlock.push(data);
-          localStorage.setItem('cacheBlock',JSON.stringify(dataSource))
+        if(allBlocksData.length>100){
+          allBlocksData.pop();
+        }
+        allBlocksData.unshift(data);
+          
+        dataSource.push(data);
+        dataSourceMin.push(data);
+        dataSourceBlock.push(data);
+        // localStorage.setItem('cacheBlock',JSON.stringify(dataSource))
+        
+        clearTimeout(messageTimer);
+        messageTimer = setTimeout(()=>{
           that.setState({
-            channelBlocks: dataSource,
-            blockSwitch: false,
-            txData: data,
+            channelBlocks: allBlocksData,
+            // statusSwitch: true,
           })
+        },300)
         
       }
 
@@ -261,8 +386,8 @@ export default class BasicLayout extends React.PureComponent {
         
         var now = new Date();
         var time = now.getTime();
-        console.log(now.toLocaleTimeString())
-        if (timeLineData.length >= 10) {
+        // console.log(now.toLocaleTimeString())
+        if (timeLineData.length > 10) {
           timeLineData.shift();
         }
         if(dataSource.length===0){
@@ -282,7 +407,7 @@ export default class BasicLayout extends React.PureComponent {
             type: '交易量'
           })
         }
-        console.log('timeLineData',timeLineData[timeLineData.length-1])
+        // console.log('timeLineData',timeLineData[timeLineData.length-1])
         that.setState({
           timeLineData:timeLineData,
           timeTick:timeLineData[timeLineData.length-1]
@@ -295,8 +420,8 @@ export default class BasicLayout extends React.PureComponent {
         
         var now = new Date();
         var time = now.getTime();
-        console.log(now.toLocaleTimeString())
-        if (timeLineDataMin.length >= 10) {
+        // console.log(now.toLocaleTimeString())
+        if (timeLineDataMin.length > 10) {
           timeLineDataMin.shift();
         }
         if(dataSourceMin.length===0){
@@ -316,7 +441,7 @@ export default class BasicLayout extends React.PureComponent {
             type: '交易量'
           })
         }
-        console.log('timeLineDataMin',timeLineDataMin)
+        // console.log('timeLineDataMin',timeLineDataMin)
         dataSourceMin = [];
       },60000))
 
@@ -324,8 +449,8 @@ export default class BasicLayout extends React.PureComponent {
         
         var now = new Date();
         var time = now.getTime();
-        console.log(now.toLocaleTimeString())
-        if (timeLineDataBlock.length >= 10) {
+        // console.log(now.toLocaleTimeString())
+        if (timeLineDataBlock.length > 10) {
           timeLineDataBlock.shift();
         }
         if(dataSourceBlock.length===0){
@@ -341,12 +466,14 @@ export default class BasicLayout extends React.PureComponent {
             type: '区块数量'
           })
         }
-        console.log('timeLineDataBlock',timeLineDataBlock)
+        // console.log('timeLineDataBlock',timeLineDataBlock)
         dataSourceBlock = [];
       },60000))
 
 
     }
+
+    
 
     this.wsBlock.onclose = function(msg){
       console.log('关闭了socketBlock');
@@ -357,20 +484,70 @@ export default class BasicLayout extends React.PureComponent {
       console.log('wsBlock发生错误');
       that.reconnetBlock(token,channelName);
     }
+
+    this.reconnetBlock.t = null;
   }
   reconnetBlock = (token,channelName) => {
     console.log('准备重连wsBlock');
-    this.wsBlock = new WebSocket(`ws://192.168.32.116:8080/websocket/block/${token}/${channelName}`);
+    // this.setState({
+    //   blockSwitch: true,
+    // })
+    clearTimeout(this.reconnetBlock.t);
+    this.reconnetBlock.t = setTimeout(()=>{
+      this.wsBlock = null;
+      this.socketBlocks(token,channelName);
+    })
+    
+    // this.wsBlock = new WebSocket(`ws://192.168.32.116:8080/websocket/block/${token}/${channelName}`);
   }
 
   componentWillUnmount() {
     unenquireScreen(this.enquireHandler);
+    clearTimeout(timer);
+    clearTimeout(timerBlock);
+    clearTimeout(timerMin);
+  }
+
+  getWsStatusData(sectionName, currentChannel, currentPeer){
+    this.setState({
+      sectionName,
+      currentChannel,
+      currentPeer,
+      statusSwitch: true,
+    })
   }
 
   getCurrentChannel = (value) => {
+    dataSource = [];
+    dataSourceMin = [];
+    dataSourceBlock = [];
+    clearTimeout(timer);
+    clearTimeout(timerBlock);
+    clearTimeout(timerMin);
+    timer = null;
+    timerBlock = null;
+    timerMin = null;
+    allBlocksData = [];
+
+    timeLineData=[{
+      time: new Date().getTime(),
+      txCount: 0,
+      type: '交易量'
+    }];  //交易秒级监控数据
+    timeLineDataMin=[{
+      time: new Date().getTime(),
+      txCount: 0,
+      type: '交易量'
+    }];  //交易分钟级监控数据
+    timeLineDataBlock=[{
+      time: new Date().getTime(),
+      blockCount: 0,
+      type: '区块数量'
+    }];  //区块分钟级监控数据
     this.setState({
       currentChannel: value,
-      blockSwitch: true
+      blockSwitch: true,
+      channelBlocks: allBlocksData,
     })
   }
 
@@ -465,10 +642,12 @@ export default class BasicLayout extends React.PureComponent {
       sessionId,
       chart
     } = this.props;
-    const { channelBlocks } = this.state;
-    console.log('basicProps',this.props)
+    const { channelBlocks, statusData, updateChaincodeList } = this.state;
+    // console.log('basicProps',this.props)
+    // console.log('basicState',this.state)
     const { isMobile: mb } = this.state;
     const baseRedirect = this.getBaseRedirect();
+    
     const layout = (
       <Layout>
         <SiderMenu
@@ -512,13 +691,16 @@ export default class BasicLayout extends React.PureComponent {
                   authority={item.authority}
                   redirectPath="/exception/403"
                   list={list}
+                  status={statusData}
                   sessionId={sessionId}
+                  getWsStatusData={this.getWsStatusData}
                   getCurrentChannel={this.getCurrentChannel}
                   timeLineData={timeLineData}
                   timeLineDataMin={timeLineDataMin}
                   timeLineDataBlock={timeLineDataBlock}
                   channelBlocks={channelBlocks}
-                  
+                  updateChaincodeList={updateChaincodeList}
+                  updateList={this.updateList}
                 />
               ))}
               <Redirect exact from="/" to={baseRedirect} />

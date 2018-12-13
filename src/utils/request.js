@@ -67,7 +67,7 @@ export default function request(url, options) {
       };
     }
   }
-  
+
   return fetch(url, newOptions)
     .then(checkStatus)
     .then(response => {
@@ -76,11 +76,11 @@ export default function request(url, options) {
       }
       return response.json();
     })
-    .then(res =>{
-      if(res.message){
-        message.info(res.message)
+    .then(res => {
+      if (res.message) {
+        message.info(res.message);
       }
-      return res
+      return res;
     })
     .catch(e => {
       const { dispatch } = store;

@@ -23,30 +23,30 @@ const menuData = [
     children: [
       {
         name: 'peer组织',
-        path: 'peerOrg'
+        path: 'peerOrg',
       },
       {
         name: 'peer节点',
-        path: 'peer'
+        path: 'peer',
       },
       {
         name: 'orderer组织',
-        path: 'ordererOrg'
+        path: 'ordererOrg',
       },
       {
         name: 'orderer节点',
-        path: 'orderer'
+        path: 'orderer',
       },
       {
         name: 'couchdb节点',
-        path: 'couchdb'
+        path: 'couchdb',
       },
       {
         name: '系统设置',
-        path: 'systemSetting'
-      }
-    ]
-  }
+        path: 'systemSetting',
+      },
+    ],
+  },
 ];
 
 function formatter(data, parentPath = '/', parentAuthority) {

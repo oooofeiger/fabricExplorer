@@ -8,30 +8,16 @@ import { urlToList } from '../_utils/pathTools';
 
 const { TabPane } = Tabs;
 export default class PageHeader extends PureComponent {
-
   state = {
     breadcrumb: null,
   };
 
-  componentDidMount() {
+  componentDidMount() {}
 
-  }
-
-  componentDidUpdate(preProps) {
-
-  }
-
-
+  componentDidUpdate(preProps) {}
 
   render() {
-    const {
-      className,
-      detailInfo,
-      toggleSwitch,
-      logo,
-      leftContent,
-      rightContent
-    } = this.props;
+    const { className, detailInfo, toggleSwitch, logo, leftContent, rightContent } = this.props;
 
     const clsString = classNames(styles.pageHeader, className);
 
@@ -39,11 +25,10 @@ export default class PageHeader extends PureComponent {
       <div className={clsString}>
         <div className={styles.leftCon}>
           <div className={styles.logoWrap}>
-            <img src={logo}/>
+            <img src={logo} />
           </div>
           {detailInfo}
           {leftContent}
-          
         </div>
         <div className={styles.rightCon}>
           {toggleSwitch}

@@ -159,7 +159,7 @@ export function getRoutes(path, routerData) {
       path: `${path}${item}`,
     };
   });
-  console.log('renderRoutes',renderRoutes)
+  console.log('renderRoutes', renderRoutes);
   return renderRoutes;
 }
 
@@ -180,4 +180,16 @@ const reg = /(((^https?:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+(?::\d+)?|(
 
 export function isUrl(path) {
   return reg.test(path);
+}
+
+export function clearSpacing(values){
+  for (const key in values) {
+    if (values.hasOwnProperty(key)) {
+      const element = values[key];
+      if(typeof element === 'string'){
+        values[key] = element.replace(/\s+/g,'')
+      }
+    }
+  }
+  return values
 }

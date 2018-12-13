@@ -32,7 +32,7 @@ const Charts = {
   TagCloud,
   TimelineChart,
   NetworkGraph,
-  RealTime
+  RealTime,
 };
 
 export {
@@ -51,5 +51,5 @@ export {
   TagCloud,
   TimelineChart,
   NetworkGraph,
-  RealTime
+  RealTime,
 };

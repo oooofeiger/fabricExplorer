@@ -3,7 +3,6 @@ import { Card } from 'antd';
 // import classNames from 'classnames';
 import styles from './index.less';
 
-
 const renderTotal = total => {
   let totalDom;
   switch (typeof total) {
@@ -32,7 +31,7 @@ const ChartCard = ({
 }) => {
   const content = (
     <div className={styles.chartCard}>
-      <div className={styles.imgWrap} style={backgroundImg?{background:backgroundImg}:{}}>
+      <div className={styles.imgWrap} style={backgroundImg ? { background: backgroundImg } : {}}>
         <img className={styles.icon} style={size} src={icon} />
       </div>
       <div className={styles.rightCon}>
@@ -43,7 +42,7 @@ const ChartCard = ({
   );
 
   return (
-    <Card loading={loading} bodyStyle={{ padding:0 }} {...rest}>
+    <Card loading={loading} bodyStyle={{ padding: 0 }} {...rest}>
       {content}
     </Card>
   );

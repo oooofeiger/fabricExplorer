@@ -75,36 +75,36 @@ export const getRouterData = app => {
       component: dynamicWrapper(app, ['user', 'login'], () => import('../layouts/BasicLayout')),
     },
     '/organization': {
-      component: dynamicWrapper(app, ['chart'], () => import('../routes/Organization/Organization')),
+      component: dynamicWrapper(app, ['chart'], () =>
+        import('../routes/Organization/Organization')
+      ),
     },
     '/channel': {
       component: dynamicWrapper(app, ['chart'], () => import('../routes/Channel/Channel')),
     },
     '/peer': {
-      component: dynamicWrapper(app, ['chart'], () =>
-        import('../routes/Peer/Peer')
-      ),
+      component: dynamicWrapper(app, ['chart'], () => import('../routes/Peer/Peer')),
       // hideInBreadcrumb: true,
       // name: '工作台',
       // authority: 'admin',
     },
     '/network/peerOrg': {
-      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/peerOrg'))
+      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/peerOrg')),
     },
     '/network/ordererOrg': {
-        component: dynamicWrapper(app, ['network'], () => import('../routes/Network/ordererOrg'))
+      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/ordererOrg')),
     },
     '/network/peer': {
-      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/peer'))
+      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/peer')),
     },
     '/network/orderer': {
-      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/orderer'))
+      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/orderer')),
     },
     '/network/couchdb': {
-      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/couchdb'))
+      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/couchdb')),
     },
     '/network/systemSetting': {
-      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/systemSetting'))
+      component: dynamicWrapper(app, ['network'], () => import('../routes/Network/systemSetting')),
     },
     // '/form/step-form': {
     //   component: dynamicWrapper(app, ['form'], () => import('../routes/Forms/StepForm')),

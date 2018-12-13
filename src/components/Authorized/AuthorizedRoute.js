@@ -4,13 +4,31 @@ import Authorized from './Authorized';
 
 class AuthorizedRoute extends React.Component {
   render() {
-    const { component: Component, render, authority, redirectPath, list, sessionId,  ...rest } = this.props;
+    const {
+      component: Component,
+      render,
+      authority,
+      redirectPath,
+      list,
+      sessionId,
+      ...rest
+    } = this.props;
     return (
       <Authorized
         authority={authority}
         noMatch={<Route {...rest} render={() => <Redirect to={{ pathname: redirectPath }} />} />}
       >
-        <Route {...rest} render={props => { console.log(rest); return  (Component ? <Component {...rest} list={list} sessionId={sessionId} {...props} /> : render(props))}} />
+        <Route
+          {...rest}
+          render={props => {
+            console.log(rest);
+            return Component ? (
+              <Component {...rest} list={list} sessionId={sessionId} {...props} />
+            ) : (
+              render(props)
+            );
+          }}
+        />
       </Authorized>
     );
   }
